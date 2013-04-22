@@ -36,197 +36,38 @@ else define(SiteCacheForceRefresh, 0);
 
 	/**
 	 * 取Url
-	 * Enter description here ...
+	 * 为Yaf定制的逆向URL静态化生成函数
 	 * @param array $args
+	 * eg: <{url _c=foo _a=bar name=jimmy page=3}>  ==> http://localhost/foo/bar/name/jimmy/page/3
 	 */
-//备注： 杂志短域名通过 404.php 处理，不经过此函数，备忘。
-//备注： /list  /list/1 /liset/1/20121102  为程序直接输出，不经过此函数。备忘。 jimmy.dong@gmail.com 2012.11.02
 	function template_url_encode($args){
-		//\Debug::log('mvc_url_encode',$args,__FILE__.':'.__LINE__);
-		if(1 && is_array($args)){	//地址静态化
+		//\Debug::log('template_url_encode',$args,__FILE__.':'.__LINE__);
+		if(!is_array($args)) return 'param error!';
+		$_c = $args['_c'] ? $args['_c'] : 'index';
+		$_a = $args['_a'] ? $args['_a'] : 'index';
+		if(!in_array($_c, array('user','api'))){
+			//静态化
+			if($_c == 'index')$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . $_a;
+			else $re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . $_c . DIRECTORY_SEPARATOR . $_a;
 			ksort($args);
-			$must_dynamic = false;
-			foreach($args as $key=>$val){
-				if($val === '' || $val === null){
-					$must_dynamic = true;
-				}
-				$keystring.=$key.',';
+			foreach($args as $key=> $val){
+				if($key == '_c' || $key == '_a')continue;
+				$re .= DIRECTORY_SEPARATOR . urlencode($key) . DIRECTORY_SEPARATOR . urlencode($val);
 			}
-			extract($args);
-			if($_a == 'index') $_a = '';
-			$page = intval($page);
-			if($must_dynamic != true){
-				if($_c == 'index' || $_c == '' || $_c == null)switch ($keystring){
-					//首页
-					case 'page,':					
-					case '_c,page,':
-					case '_a,_c,':
-					case '_a,_c,page,':
-						$page = intval($page);
-						$re =  ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'index_'.$c.'_'.$_a.'_'.$page.'.html';
-						//RewriteRule /index_([^_]*)_([^_]*)_([0-9]+)\.html /index.php?_c=$1&_a=$2&page=$3&uw=1&%{QUERY_STRING} [L]
-					break;
-					//推广内容
-					case '_a,word,':
-					case '_a,aid,word,':
-					case '_a,_c,aid,word,':
-					case '_a,_c,word,':
-						$re =  ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'word_'.$_a.'_'.$aid.'_'.$word.'.html';
-						//RewriteRule /word_([^_]*)_([^_]*)_([^_]*)\.html /index.php?_a=$1&aid=$2&word=$3&uw=1&%{QUERY_STRING} [L]
-					break;
-					case '_a,page,since,word,':
-					case '_a,_c,page,since,word,':
-						$re =  ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'word_'.$_a.'_'.$aid.'_'.$word.'_'.$page.'_'.$since.'.html';
-						//RewriteRule /word_([^_]*)_([^_]*)_([^_]*)_([0-9]+)_([a-f0-9]+)\.html /index.php?_a=$1&aid=$2&word=$3&page=$4&since=$5&uw=1&%{QUERY_STRING} [L]
-					break;
-					default:
-						$must_dynamic = true;
-					break;
-				}
-				if($_c == 'magazine')switch ($keystring){					
-					//杂志
-					case '_c,short_url':
-						//if(!in_array($short_url,array('demo','html','services','tasks','test','upload')))	$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . $short_url . DIRECTORY_SEPARATOR;
-						break;
-					case '_a,_c,_id,':
-					case '_c,_id,page,':
-						$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'mag_'.$_a.'_'.$_id.'_'.$page.'.html';
-						//RewriteRule /mag_([^_]*)_([a-f0-9]+)_([0-9]+)\.html /index.php?_c=magazine&_a=$1&_id=$2&page=$3&uw=1&%{QUERY_STRING} [L]
-						break;
-					case '_a,_c,_id,mag_id,':
-						if($_a == 'detail')$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'detail_'.$mag_id.'_'.$_id.'.html';
-						//RewriteRule /detail_([a-f0-9]+)_([a-f0-9]+)\.html /index.php?_c=magazine&_a=detail&mag_id=$1&_id=$2&uw=1&%{QUERY_STRING} [L]
-					break;
-					default:
-						$must_dynamic = true;
-					break;
-				}
-				if($_c == 'topic')switch ($keystring){					
-					//主题
-					case '_c,_id,':
-					case '_a,_c,_id,':
-					case '_c,_id,page,':
-					case '_a,_c,_id,page,':
-						if($_a == 'detail') $re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'url_'.$_id.'.html';
-						//RewriteRule /url_([a-f0-9]+)\.html /index.php?_c=topic&_a=detail&_id=$1&uw=1&%{QUERY_STRING} [L]
-						else $re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'topic_'.$_a.'_'.$_id.'_'.$page.'.html';
-						//RewriteRule /topic_([^_]*)_([a-f0-9]+)_([0-9]+)\.html /index.php?_c=topic&_a=$1&_id=$2&page=$3&uw=1&%{QUERY_STRING} [L]
-					break;
-					default:
-						$must_dynamic = true;
-					break;
-				}
-				if($_c == 'user')switch ($keystring){					
-					//用户 
-					case '_c,user_id,':
-					case '_a,_c,user_id,':
-						$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'user_'.$_a.'_'.$user_id.'.html';
-						//RewriteRule /user_([^_]*)_([a-f0-9]+)\.html /index.php?_c=user&_a=$1&user_id=$2&uw=1&%{QUERY_STRING} [L]
-					break;
-					case '_c,user_id,page,since,':
-					case '_a,_c,user_id,page,since,':
-						$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'user_'.$_a.'_'.$user_id.'_'.$page.'_'.$since.'.html';
-						//RewriteRule /user_([^_]*)_([a-f0-9]+)_([0-9]+)_([a-f0-9]+)\.html /index.php?_c=user&_a=$1&user_id=$2&page=$3&since=$4&uw=1&%{QUERY_STRING} [L]
-					break;
-					default:
-						$must_dynamic = true;
-					break;
-				}
-				if($_c == 'activity')switch ($keystring){
-					//活动
-					/*
-					RewriteRule /hd_([^_]*)_([0-9]+)\.html /index.php?_c=activity&_a=$1&actid=$2&%{QUERY_STRING} [L]
-					RewriteRule /hd_([^_]*)_([0-9]+)_([0-9]+)\.html /index.php?_c=activity&_a=$1&actid=$2&dyp=$3&%{QUERY_STRING} [L]
-					*/
-					case '_a,_c,actid,':
-						$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'hd_'.$_a.'_'.$actid.'.html';
-						break;
-					case '_a,_c,actid,dyp,':
-						$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'hd_'.$_a.'_'.$actid.'_'.$dyp.'.html';
-						break;
-				}
-				if($_c == 'catalog'){
-					//频道
-					/*
-					RewriteRule /c/wedding/([0-9]+) /index.php?_c=catalog&cata_id=11&page=$1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/wedding /index.php?_c=catalog&cata_id=11&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/models/([0-9]+) /index.php?_c=catalog&cata_id=10&page=$1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/models /index.php?_c=catalog&cata_id=10&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/illustration/([0-9]+) /index.php?_c=catalog&cata_id=12&page=$1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/illustration /index.php?_c=catalog&cata_id=12&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/travel/([0-9]+) /index.php?_c=catalog&cata_id=2&page=$1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/travel /index.php?_c=catalog&cata_id=2&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/streetsnap/([0-9]+) /index.php?_c=catalog&cata_id=3&page=$1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/streetsnap /index.php?_c=catalog&cata_id=3&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/fashion/([0-9]+) /index.php?_c=catalog&cata_id=1&page=$1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/fashion/ index.php?_c=catalog&cata_id=1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/pets/([0-9]+) /index.php?_c=catalog&cata_id=7&page=$1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/pets /index.php?_c=catalog&cata_id=7&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/photography/([0-9]+) /index.php?_c=catalog&cata_id=4&page=$1&uw=1&%{QUERY_STRING} [L]
-					RewriteRule /c/photography /index.php?_c=catalog&cata_id=4&uw=1&%{QUERY_STRING} [L]
-					
-					RewriteRule /catalog_([^_]*)_([0-9]+)_([0-9]+).html /index.php?_c=catalog&_a=$1&cata_id=$2&page=$3&%{QUERY_STRING} [L]
-					*/
-					$channel_defined = array( 1=>'fashion'
-						,2=>'travel'
-						,3=>'streetsnap'
-						,4=>'photography'
-						,7=>'pets'
-						,10=>'models'
-						,11=>'wedding'
-						,12=>'illustration');
-					switch ($keystring){
-						case '_c,cata_id,' : 
-						case '_c,cata_id,page,' :
-							$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'c/' . $channel_defined[$cata_id];
-							if($page) $re .= '/' . $page;
-							break;
-						case '_a,_c,cata_id,' :
-						case '_a,_c,cata_id,page,' :
-							$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'catalog_' . $_a . '_' . $cata_id . '_' . $page . '.html';
-							break;
-						default: break;
-					}
-				}
-				if($re == '') {
-				/*通用转换。支持0-4个参数。对应control中应增加对$request->param的判断和处理。
-				 	RewriteRule /common_([^_]*)_([^_]*)_([0-9]+)\.html /index.php?_c=$1&_a=$2&page=$3&%{QUERY_STRING} [L]
-					RewriteRule /common_([^_]*)_([^_]*)_([^_]*)_([0-9]+)\.html /index.php?_c=$1&_a=$2&page=$4&param[]=$3&%{QUERY_STRING} [L]
-					RewriteRule /common_([^_]*)_([^_]*)_([^_]*)_([^_]*)_([0-9]+)\.html /index.php?_c=$1&_a=$2&page=$5&param[]=$3&param[]=$4&%{QUERY_STRING} [L]
-					RewriteRule /common_([^_]*)_([^_]*)_([^_]*)_([^_]*)_([^_]*)_([0-9]+)\.html /index.php?_c=$1&_a=$2&page=$6&param[]=$3&param[]=$4&param[]=$5&%{QUERY_STRING} [L]
-					RewriteRule /common_([^_]*)_([^_]*)_([^_]*)_([^_]*)_([^_]*)_([^_]*)_([0-9]+)\.html /index.php?_c=$1&_a=$2&page=$7&param[]=$3&param[]=$4&param[]=$5&param[]=$6&%{QUERY_STRING} [L]
-				 */
-					if(in_array($_c, array('app360','addtopic','addurl','export','detail','letter','longinat','loginyoka','message','search','search2','upload','url','urlplugin'))) $must_dynamic = true; //注意，不能使用通用转化的control，需要在这里进行注册
-					else{
-						$param = array();
-						foreach($args as $key=>$val){
-							if($key == '_a' || $key == '_c' || $key == 'page') continue;
-							$param[] = urlencode($val);
-						}
-						$re = ROOT_DOMAIN . DIRECTORY_SEPARATOR . 'common_' . $_c . '_' . $_a;
-						foreach($param as $val) $re .= '_' . $val;
-						$re.= '_' . $page . '.html';
-					}			
-				}
-			}
-			if($must_dynamic != true){
-				//\Debug::log('UW:'.$re,$args);
-				return $re;
-			}
-		}
-		//\Debug::log('UW: not match',$args);
-		
-		//动态地址
-		$t = '';
-		if(is_array($args))foreach($args as $key=>$val){
-			$t .= urlencode($key) . '=' . urlencode($val) .'&';
+			//\Debug::log('template_url_encode',ROOT_DOMAIN . DIRECTORY_SEPARATOR . "index.php?".$t, __FILE__.':'.__LINE__);
+			return $re;
 		}else{
-			$t = $args;
-		}
-		if(substr($t,-1,1)=='&')$t=substr($t,0,strlen($t)-1);
-		//\Debug::log('mvc_url_encode',ROOT_DOMAIN . DIRECTORY_SEPARATOR . "index.php?".$t, __FILE__.':'.__LINE__);
-		return ROOT_DOMAIN . DIRECTORY_SEPARATOR . "index.php?".$t;
-		
+			//动态地址
+			$t = '';
+			if(is_array($args))foreach($args as $key=>$val){
+				$t .= urlencode($key) . '=' . urlencode($val) .'&';
+			}else{
+				$t = $args;
+			}
+			if(substr($t,-1,1)=='&')$t=substr($t,0,strlen($t)-1);
+			//\Debug::log('template_url_encode',ROOT_DOMAIN . DIRECTORY_SEPARATOR . "index.php?".$t, __FILE__.':'.__LINE__);
+			return ROOT_DOMAIN . DIRECTORY_SEPARATOR . "index.php?".$t;
+		}		
 	}
 	
 	/**
